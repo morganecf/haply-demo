@@ -1,5 +1,7 @@
+
 from random import random
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 from kivy.graphics import Color, Ellipse, Line, Rectangle, Triangle
@@ -40,12 +42,12 @@ class GravitySimulation(Widget):
 			Color(*color, mode='hsv')		
 			d = 50.
 			ball = Ellipse(pos = (touch.x - d/2, touch.y - d / 2), size = (d, d))
-			balls.append(ball)
+			self.balls.append(ball)
 
-			print ball 
-
-	# def update(self):
-	# 	for ball in self.balls:
+	# Balls should fall under the force of gravity (-9.8*t^2)
+	def update(self, timestep):
+		for ball in self.balls:
+			ball.pos = (ball.pos[0], ball.pos[1] - 1)
 			
 
 class GravityApp(App):
@@ -58,7 +60,7 @@ class GravityApp(App):
 
 		# Create the simulation 
 		self.simulation = GravitySimulation()
-		#Clock.schedule_interval(self.simulation.update, 1.0 / 100.0)
+		Clock.schedule_interval(self.simulation.update, 1.0 / 100.0)
 
 		# This button will clear the canvas of any circles
 		clear = Button(text='clear')
@@ -68,7 +70,7 @@ class GravityApp(App):
 		parent.add_widget(self.simulation)
 		parent.add_widget(clear)
 
-		return simulation
+		return self.simulation
 
 	def clear_canvas(self, obj):
 		self.simulation.canvas.clear()
