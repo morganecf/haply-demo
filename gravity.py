@@ -4,21 +4,8 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
+from kivy.properties import NumericProperty
 from kivy.graphics import Color, Ellipse, Line, Rectangle, Triangle
-
-# class Ball(Widget):
-
-# 	'''
-# 	The ball class.  
-# 	'''
-
-# 	velocity_x = NumericProperty(0)
-#     velocity_y = NumericProperty(0)
-#     velocity = ReferenceListProperty(velocity_x, velocity_y)
-
-#     # Move the ball one unity of velocity 
-#     def move(self):
-#         self.pos = Vector(*self.velocity) + self.pos
 
 
 class GravitySimulation(Widget):
@@ -30,6 +17,7 @@ class GravitySimulation(Widget):
 
 	# Will contain all the balls the user creates 
 	balls = []
+	gravity = NumericProperty(9.81)
 
 	# When the user clicks, a ball is formed 
 	def on_touch_down(self, touch):
@@ -44,10 +32,11 @@ class GravitySimulation(Widget):
 			ball = Ellipse(pos = (touch.x - d/2, touch.y - d / 2), size = (d, d))
 			self.balls.append(ball)
 
-	# Balls should fall under the force of gravity (-9.8*t^2)
+	# Balls should fall under the force of gravity (-9.81*t^2)
 	def update(self, timestep):
 		for ball in self.balls:
-			ball.pos = (ball.pos[0], ball.pos[1] - 1)
+			print 'gravity', self.gravity
+			ball.pos = (ball.pos[0], ball.pos[1] - (timestep * self.gravity))
 			
 
 class GravityApp(App):
@@ -66,15 +55,34 @@ class GravityApp(App):
 		clear = Button(text='clear')
 		clear.bind(on_release=self.clear_canvas)
 
+		# This button will increase the force of gravity 
+		increase = Button(text='+')
+		increase.bind(on_release=self.increase_gravity)
+
+		# This button will decrease the force of gravity 
+		decrease = Button(text='-')
+		decrease.bind(on_release=self.decrease_gravity)
+
+		# Position the buttons
+		increase.set_center_y(150)
+		decrease.set_center_y(250)
+
 		# Add widgets to the main parent widget
 		parent.add_widget(self.simulation)
 		parent.add_widget(clear)
+		parent.add_widget(increase)
+		parent.add_widget(decrease)
 
-		return self.simulation
+		return parent
 
 	def clear_canvas(self, obj):
 		self.simulation.canvas.clear()
 
+	def increase_gravity(self, obj):
+		self.simulation.gravity += 10.0
+
+	def decrease_gravity(self, obj):
+		self.simulation.gravity -= 10.0
 
 if __name__ == '__main__':
 	GravityApp().run()
