@@ -30,7 +30,8 @@ make install
 
 TO COMPILE/RUN C++ ZEROMQ FILES 
 g++ -I '/usr/local/include' -L /usr/local/lib -lzmq hello_server.cpp 	# link to headers and cpp files
-# also need to make sure it's "zmq.hpp" instead of <zmq.hpp> 
+
+**also need to make sure it's "zmq.hpp" instead of <zmq.hpp> 
 
 g++ -I '/usr/local/include' -L /usr/local/lib -lzmq hello_server.cpp -o helloserver
 g++ -I '/usr/local/include' -L /usr/local/lib -lzmq hello_client.cpp -o helloclient
@@ -54,4 +55,3 @@ CYTHON
 
 ### To do: 
 - mockups 
-- vectors instead of arrays
