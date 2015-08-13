@@ -1,4 +1,6 @@
 
+import zmq
+
 from random import random
 from kivy.app import App
 from kivy.clock import Clock
@@ -19,6 +21,15 @@ class GravitySimulation(Widget):
 	balls = []
 	gravity = NumericProperty(9.81)
 
+	# The user cursor (haptic avatar)
+	cursor = None
+
+	# Set up the TCP client
+	context = zmq.Context()
+	socket = context.socket(zmq.SUB)
+	socket.connect("tcp://localhost:5556")
+	socket.setsockopt_string(zmq.SUBSCRIBE, u"pos")
+
 	# When the user clicks, a ball is formed 
 	def on_touch_down(self, touch):
 		# Initialize a random circle
@@ -32,8 +43,21 @@ class GravitySimulation(Widget):
 			ball = Ellipse(pos = (touch.x - d/2, touch.y - d / 2), size = (d, d))
 			self.balls.append(ball)
 
+	# Add a red cursor to the screen
+	def add_cursor(self):
+		with self.canvas:
+			Color(1., 0, 0)
+			self.cursor = Ellipse(pos = (100, 50), size = (10, 10))
+
 	# Balls should fall under the force of gravity (-9.81*t^2)
 	def update(self, timestep):
+		# Listen for position information 
+		position = self.socket.recv_string().split()
+
+		# Update the cursor
+		self.cursor.pos = (int(position[1]), int(position[2]))
+
+		# Update balls
 		for ball in self.balls:
 			print 'gravity', self.gravity
 			ball.pos = (ball.pos[0], ball.pos[1] - (timestep * self.gravity))
@@ -49,6 +73,11 @@ class GravityApp(App):
 
 		# Create the simulation 
 		self.simulation = GravitySimulation()
+
+		# Add the haptic mouse avatar
+		self.simulation.add_cursor()
+
+		# Schedule a simulation update every 100 hz
 		Clock.schedule_interval(self.simulation.update, 1.0 / 100.0)
 
 		# This button will clear the canvas of any circles
