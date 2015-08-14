@@ -25,13 +25,22 @@ class GravitySimulation(Widget):
 	# The user cursor (haptic avatar)
 	cursor = None
 
+	# Will contain all the obstacles the user can create
+	obstacles = []
+
+	# For testing
 	n = 0
 
-	# Set up the TCP client
+	# Set up the TCP subscriber client
+	# context = zmq.Context()
+	# socket = context.socket(zmq.SUB)
+	# socket.connect("tcp://localhost:5556")
+	# socket.setsockopt_string(zmq.SUBSCRIBE, u"pos")
+
+	# Set up the TCP client 
 	context = zmq.Context()
-	socket = context.socket(zmq.SUB)
+	socket = context.socket(zmq.REQ)
 	socket.connect("tcp://localhost:5556")
-	socket.setsockopt_string(zmq.SUBSCRIBE, u"pos")
 
 	# When the user clicks, a ball is formed 
 	def on_touch_down(self, touch):
@@ -43,14 +52,22 @@ class GravitySimulation(Widget):
 			# Only the hue changes, so will have equally bright colors
 			Color(*color, mode='hsv')		
 			d = 50.
-			ball = Ellipse(pos = (touch.x - d/2, touch.y - d / 2), size = (d, d))
-			self.balls.append(ball)
+			
+			# ball = Ellipse(pos = (touch.x - d/2, touch.y - d / 2), size = (d, d))
+			# self.balls.append(ball)
+
+			obst = Rectangle(pos = (touch.x - d / 2, touch.y - d / 2), size = (d, d))
+			self.obstacles.append(obst)
+
+			# Send information to socket 
+			self.socket.send_string("rect");
 
 	# Add a red cursor to the screen
 	def add_cursor(self):
 		with self.canvas:
 			Color(1., 0, 0)
 			self.cursor = Ellipse(pos = (100, 50), size = (10, 10))
+
 
 	# Balls should fall under the force of gravity (-9.81*t^2)
 	def update(self, timestep):
@@ -59,17 +76,17 @@ class GravitySimulation(Widget):
 		# Listen for position information 
 		position = self.socket.recv_string().split()
 
-		# Update the cursor
-		self.cursor.pos = (int(position[1]), int(position[2]))
+		# Ignore header information 
+		if position[0] == 'pos':
+			return
 
-		if self.cursor.pos[0] == 0.0 and self.cursor.pos[1] == 0.0:
-			print 'DONE:', self.n
-			sys.exit(1)
+		# Update the cursor
+		self.cursor.pos = (int(position[0]), int(position[1]))
 
 		# Update balls
-		for ball in self.balls:
-			print 'gravity', self.gravity
-			ball.pos = (ball.pos[0], ball.pos[1] - (timestep * self.gravity))
+		# for ball in self.balls:
+		# 	print 'gravity', self.gravity
+		# 	ball.pos = (ball.pos[0], ball.pos[1] - (timestep * self.gravity))
 			
 
 class GravityApp(App):
@@ -110,6 +127,9 @@ class GravityApp(App):
 		parent.add_widget(clear)
 		parent.add_widget(increase)
 		parent.add_widget(decrease)
+
+		# Tell server we're ready 
+		self.simulation.socket.send_string("ready")
 
 		return parent
 

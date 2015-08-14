@@ -95,4 +95,22 @@ Useful examples
 	color picker => for dragging and picking color 
 - action bar 
 - pop up (for instructions)
+
+- accordion: different content sections in vertical accordion thing 
+- actionbar: top action bar 
+- asyncimage: asynchronously load an image? (kitty image)
+- bubbltest: shows a thought/info bubble near something 
+- carousel: matrix of images, when click on one acts like carousel and slides to show image
+- colorpicker: has images, can do diff. tpytes of brush strokes, color wheel, and color sliders 
+- customcollide: red triangle you can drag around 
+- imagemipmap: image of kivy logo you can drag around 
+- keyboard listener: virtual keyboard you can click on. letters appear in terminal 
+- labelmipmap: same as above but w/ text label 
+- labeltext size: example paragraph text 
+- label w/ markup: stylized text example
+- lang_dynamic: flashes color on click 
+- ...
+- shorten text: make a text box shorter or longer, has sliders
+- screenmanager: different screens (different mini apps)
+
 ''' 
