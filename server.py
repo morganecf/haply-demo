@@ -70,7 +70,9 @@ path = diagonal_walk(400)
 
 # Send positions from path to the client 
 while True:
-    time.sleep(1)
+    # Synchronize with client 
+    time.sleep(.01)
+
     if path:
       point = path.pop()
 

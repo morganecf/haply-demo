@@ -1,5 +1,6 @@
 
 import zmq
+import sys
 
 from random import random
 from kivy.app import App
@@ -23,6 +24,8 @@ class GravitySimulation(Widget):
 
 	# The user cursor (haptic avatar)
 	cursor = None
+
+	n = 0
 
 	# Set up the TCP client
 	context = zmq.Context()
@@ -51,11 +54,17 @@ class GravitySimulation(Widget):
 
 	# Balls should fall under the force of gravity (-9.81*t^2)
 	def update(self, timestep):
+		self.n += 1
+
 		# Listen for position information 
 		position = self.socket.recv_string().split()
 
 		# Update the cursor
 		self.cursor.pos = (int(position[1]), int(position[2]))
+
+		if self.cursor.pos[0] == 0.0 and self.cursor.pos[1] == 0.0:
+			print 'DONE:', self.n
+			sys.exit(1)
 
 		# Update balls
 		for ball in self.balls:
