@@ -1,0 +1,6 @@
+
+To install ZMQ, reference: http://zeromq.org/
+
+To run the demo, run the GUI client and the C++ server: 
+- ./demoServer 
+- python demoTK.py 
