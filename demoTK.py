@@ -1,3 +1,4 @@
+import zmq
 import random
 from datetime import datetime
 
@@ -19,6 +20,10 @@ class Shape:
 		self.light = color[2]
 		self.w = 3
 		self.mass = 10
+
+	def __str__(self):
+		# String representation of a shape is its position and mass 
+		return str(self.pos[0]) + ',' + str(self.pos[1]) + ',' + str(self.mass)
 
 
 class Square(Shape):
@@ -93,13 +98,19 @@ class DemoApp(Tk):
 		self.moving = None
 		self.mouse = None
 
+		# Tells us if we're in haptic mode or not
+		self.hapified = False
+
+		# Set up the TCP client 
+		self.context = zmq.Context()
+		self.socket = self.context.socket(zmq.REQ)
+		self.socket.connect("tcp://localhost:5556")
+
 		# Initialize the canvas 
 		self.initialize()
-		#self.update()
 
 
 	def initialize(self):
-
 		# Initialize the work area 
 		self.grid()
 
@@ -123,8 +134,8 @@ class DemoApp(Tk):
 		clear.grid(row=0, column=5)
 
 		# Add a "hapify" button to haptically enable the shapes
-		hapify = Button(self, text='Hapify', command=self.hapify)
-		hapify.grid(row=0, column=6)
+		self.hapifyBtn = Button(self, text='Hapify', command=self.hapify)
+		self.hapifyBtn.grid(row=0, column=6)
 
 		# Create the canvas on which shapes will be drawn
 		self.canvas = Canvas(self, width=self.width, height=self.height)
@@ -183,13 +194,21 @@ class DemoApp(Tk):
 
 
 	def clear(self):
+		# Only allow editing if not in haptic mode
+		if self.hapified: 
+			return 
+
 		self.shapes = {}
 		self.canvas.delete("all")
 
 
 	def add_shape(self, typ):
+		# Only allow editing if not in haptic mode
+		if self.hapified: 
+			return 
+
 		# Find a random position on the canvas 
-		p = [random.random() * self.width, random.random() * self.height]
+		p = [random.random() * (self.width - 100), random.random() * (self.height - 100)]
 
 		# Pick a random color
 		color = self.colors[random.choice(self.colors.keys())]
@@ -203,6 +222,10 @@ class DemoApp(Tk):
 
 
 	def click(self, event):
+		# Only allow editing if not in haptic mode
+		if self.hapified: 
+			return 
+
 		shape = self.canvas.find_withtag("current")
 		if shape:
 			self.moving = shape
@@ -210,6 +233,10 @@ class DemoApp(Tk):
 	
 
 	def double_click(self, event):
+		# Only allow editing if not in haptic mode
+		if self.hapified: 
+			return 
+
 		shape = self.canvas.find_withtag("current")
 		if shape:
 			# Find the corresponding shape object 
@@ -231,11 +258,12 @@ class DemoApp(Tk):
 		shape.mass = int(mass.get())
 		dialog.destroy()
 
-		# Send information to backend 
-		# TODO
-
 
 	def move(self, event):
+		# Only allow editing if not in haptic mode
+		if self.hapified: 
+			return 
+
 		# Find the mouse displacement 
 		dx = event.x - self.mouse[0]
 		dy = event.y - self.mouse[1]
@@ -253,18 +281,87 @@ class DemoApp(Tk):
 
 
 	def up(self, event):
+		# Only allow editing if not in haptic mode
+		if self.hapified: 
+			return 
+
 		self.moving = None
 		self.mouse = None
 
 
-	# Haptically enable all of the shapes 
+	# Haptically enable/disable all of the shapes 
 	def hapify(self):
-		pass
+		if self.hapified:
+			self.hapified = False 
+
+			# Hapify button 
+			self.hapifyBtn.grid_forget()
+			self.hapifyBtn = Button(self, text='Hapify', command=self.hapify)
+			self.hapifyBtn.grid(row=0, column=6)
+
+			# Send dehapify request to the server
+			self.socket.send("dehapify")
+			print self.socket.recv()
+
+		else:
+			self.hapified = True 
+
+			# Dehapify button 
+			self.hapifyBtn.grid_forget()
+			self.hapifyBtn = Button(self, text='Dehapify', command=self.hapify)
+			self.hapifyBtn.grid(row=0, column=6)
+
+			# Send hapify request to the server
+			self.socket.send("hapify")
+			print self.socket.recv()
+
+			# Send shape information over to the server
+			# Format: sid,posx,posy,mass
+			shape_info = '\t'.join([str(s) + ',' + str(self.shapes[s]) for s in self.shapes.keys()])
+			self.socket.send(shape_info)
+
+			# Listen for server-side information
+			self.update()
 
 
-	# Listen for information from backend 
-	# def update(self):
-	# 	self.after(1, self.update)
+	# Listen for positional information from backend 
+	def update(self):
+		# Don't update if hapify mode is disabled
+		if not self.hapified:
+			return
+
+		# Otherwise listen every 1 s 
+		positions = self.socket.recv()
+
+		# Only for the sample simulation, not for the real demo
+		if positions == 'simulation done':
+			return
+		
+		self.socket.send('received positions')
+
+		# Update the shapes' positions 
+		positions = positions.strip().split('\t')
+		for position in positions:
+			# Update the object
+			sid, x, y, m = position.split(',')
+			sid = int(sid)
+			shape = self.shapes[sid]
+			shape.pos = [float(x), float(y)]
+
+			# Move the canvas shape -- TODO: THIS IS ONLY FOR THE EXAMPLE SIMULATION
+			# WILL NEED TO CALCULATE DISPLACEMENT IN BACKEND AND SEND IT OVER
+			dx = 5
+			dy = 5 
+			self.canvas.move(sid, dx, dy)
+			coords = self.canvas.coords(sid)
+
+			# Update the shape's coordinates 
+			new_coords = [coords[0] + dx, coords[1] + dy, coords[2] + dx, coords[3] + dy]
+			self.canvas.coords(sid, *new_coords)
+
+		self.after(1, self.update)
+
+
 
 if __name__ == "__main__":
 	# Run the app 
